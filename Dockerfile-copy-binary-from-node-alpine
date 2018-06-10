@@ -1,0 +1,24 @@
+FROM node:8.11.2-alpine as node
+FROM ruby:2.5.0-alpine
+ENV APP_ROOT /app
+WORKDIR $APP_ROOT
+
+RUN apk add --update --no-cache --virtual=build-dependencies \
+      build-base curl-dev linux-headers libxml2-dev libxslt-dev ruby-dev yaml-dev zlib-dev sqlite-dev postgresql-dev mysql-dev && \
+    apk add --update --no-cache \
+      tzdata yaml && \
+    echo 'gem: --no-document' >> ~/.gemrc && \
+    cp ~/.gemrc /etc/gemrc && \
+    chmod uog+r /etc/gemrc && \
+    bundle config --global build.nokogiri --use-system-libraries && \
+    bundle config --global jobs 4
+RUN mkdir /opt
+COPY --from=node /usr/local/bin/yarn /opt/yarn
+COPY --from=node /usr/local/bin/node /usr/local/bin/
+RUN ln -s /opt/yarn/bin/yarn /usr/local/bin/yarn && \
+    ln -s /opt/yarn/bin/yarn /usr/local/bin/yarnpkg
+COPY Gemfile* $APP_ROOT/
+RUN bundle install
+
+EXPOSE 3000
+CMD ["rails", "server", "-b", "0.0.0.0"]

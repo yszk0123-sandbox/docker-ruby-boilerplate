@@ -1,0 +1,25 @@
+FROM ruby:2.5.0
+ENV APP_ROOT /app
+WORKDIR $APP_ROOT
+
+RUN apt-get update && \
+    apt-get install -y mysql-client \
+                       postgresql-client \
+                       sqlite3 \
+                       --no-install-recommends && \
+    echo 'gem: --no-document' >> ~/.gemrc && \
+    cp ~/.gemrc /etc/gemrc && \
+    chmod uog+r /etc/gemrc && \
+    bundle config --global build.nokogiri --use-system-libraries && \
+    bundle config --global jobs 4 && \
+    curl -sL https://deb.nodesource.com/setup_8.x | bash - && \
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt-get update -qqy && apt-get -qqyy install \
+      nodejs yarn && \
+    rm -rf /var/lib/apt/lists/*
+COPY Gemfile* $APP_ROOT/
+RUN bundle install
+
+EXPOSE 3000
+CMD ["rails", "server", "-b", "0.0.0.0"]
